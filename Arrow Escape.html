@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arrow Escape</title>
+<style>
+:root{--bg:#ffffff;--ink:#1f2140;--soft:#8c90b3;--heart:#e5484d;--panel:#ffffff;--line:#dfe2f2;--hint:#a67be8;--go:#1f8a3a;--ring:#3b6cff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12141f;--ink:#dfe3ff;--soft:#767ba3;--panel:#1b1e2e;--line:#2c3050;--hint:#b896f5;--go:#4fd179}}
+:root[data-theme="dark"]{--bg:#12141f;--ink:#dfe3ff;--soft:#767ba3;--panel:#1b1e2e;--line:#2c3050;--hint:#b896f5;--go:#4fd179}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;position:relative}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 4px}
+.ib{width:44px;height:44px;border:0;border-radius:50%;background:var(--panel);box-shadow:0 1px 6px rgba(0,0,0,.14);color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.ib svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+button:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+#hearts{display:flex;gap:7px}
+#hearts svg{width:30px;height:30px;fill:var(--heart);transition:opacity .3s,transform .3s}
+#hearts svg.lost{opacity:.18;transform:scale(.78)}
+#lvl{text-align:center;font-size:14px;font-weight:600;color:var(--soft);letter-spacing:.04em;margin:2px 0}
+#stage{flex:1;min-height:0;position:relative}
+#cv{position:absolute;left:0;top:0;display:block}
+#tip{margin:0;text-align:center;font-size:14px;color:var(--soft);min-height:20px}
+footer{display:flex;justify-content:center;padding:8px 14px 18px}
+#hintBtn{position:relative;width:68px;height:68px;border-radius:50%;border:0;background:var(--hint);color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 3px 10px rgba(120,80,200,.35)}
+#hintBtn svg{width:34px;height:34px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#hintBtn:disabled{opacity:.45}
+#hc{position:absolute;top:-6px;right:-8px;min-width:26px;height:26px;border-radius:13px;background:#6fcf4a;color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center;padding:0 5px;box-sizing:border-box}
+.ov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.3)}
+.ov[hidden]{display:none}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:24px;width:min(82%,320px);text-align:center}
+.card h2{margin:0 0 6px;font-size:22px}
+.card p{margin:0 0 16px;color:var(--soft);font-size:15px}
+.btn{display:block;width:100%;border:0;border-radius:12px;font:inherit;font-size:16px;padding:12px;margin-top:8px;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.sec{background:none;border:1.5px solid var(--line);color:var(--ink)}
+.btn.dng{color:var(--heart)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;font-size:16px;text-align:left}
+.tg{width:48px;height:28px;border-radius:14px;border:0;background:var(--line);position:relative;cursor:pointer;transition:background .2s}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s}
+.tg.on{background:var(--go)}.tg.on::after{transform:translateX(20px)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button class="ib" id="back" aria-label="Restart level"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+    <div id="hearts" aria-label="Lives"></div>
+    <button class="ib" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8l1.6.3.5 2.2 1.7.7 1.9-1.200 2.300 2.300-1.200 1.900.7 1.700 2.200.5.3 1.600-.3 1.600-2.200.5-.7 1.700 1.200 1.900-2.300 2.300-1.900-1.200-1.700.7-.5 2.200-1.600.3-1.600-.3-.5-2.200-1.700-.7-1.900 1.200-2.300-2.300 1.200-1.900-.7-1.700-2.200-.5-.3-1.600.3-1.600 2.200-.5.7-1.700-1.200-1.900 2.300-2.300 1.900 1.200 1.700-.7.5-2.200z"/></svg></button>
+  </header>
+  <div id="lvl"></div>
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <p id="tip"></p>
+  <footer><button id="hintBtn" aria-label="Hint"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.500 10.900c.6.5 1 1.200 1 2V16h5v-.1c0-.8.4-1.500 1-2A6 6 0 0012 3z"/></svg><span id="hc">3</span></button></footer>
+  <div class="ov" id="ov" hidden><div class="card"><h2 id="ot"></h2><p id="op"></p><button class="btn" id="ob"></button><button class="btn sec" id="ob2" hidden></button></div></div>
+  <div class="ov" id="set" hidden><div class="card"><h2>Settings</h2>
+    <div class="row"><span>Sound</span><button class="tg on" id="tS" aria-label="Sound"></button></div>
+    <div class="row"><span>Vibration</span><button class="tg on" id="tV" aria-label="Vibration"></button></div>
+    <button class="btn sec dng" id="rst">Reset progress</button><button class="btn" id="cls">Close</button></div></div>
+</div>
+<script>
+(()=>{
+/* ---------- CONFIG ---------- */
+const MINCS=15;                         /* smallest cell size in px (keeps taps accurate) */
+const RAMP=120;                         /* levels until max difficulty */
+const D=[[1,0],[0,1],[-1,0],[0,-1]],K=(x,y)=>x+','+y,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const mul=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const $=id=>document.getElementById(id);
+/* ---------- STORAGE ---------- */
+let S={lvl:1,hints:3,snd:true,vib:true};
+try{Object.assign(S,JSON.parse(localStorage.getItem('arrowEscape')||'{}'))}catch(_){}
+const save=()=>{try{localStorage.setItem('arrowEscape',JSON.stringify(S))}catch(_){}};
+/* ---------- SOUND (same tones as the Gemini build) ---------- */
+let ac;
+function tone(type,f1,f2,t,peak,delay){
+  if(!S.snd)return;try{
+    if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();
+    const n=ac.currentTime+(delay||0),o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f1,n);
+    if(f2)o.frequency.exponentialRampToValueAtTime(f2,n+t*.9);
+    g.gain.setValueAtTime(.001,n);g.gain.linearRampToValueAtTime(peak,n+.015);g.gain.exponentialRampToValueAtTime(.0001,n+t);
+    o.connect(g);g.connect(ac.destination);o.start(n);o.stop(n+t+.01)}catch(_){}
+}
+const sOk=()=>tone('sine',520,680,.09,.11);
+const sBad=()=>{if(S.vib&&navigator.vibrate)try{navigator.vibrate(35)}catch(_){}tone('triangle',150,92,.15,.16)};
+const sWin=()=>[440,554.37,659.25,880].forEach((f,i)=>tone('sine',f,0,.32,.09,i*.075));
+/* ---------- DIFFICULTY ---------- */
+let W,H,cs,ox,oy,dpr,ink,soft,go;
+function params(L){
+  const hard=L%10===0,br=L%10===1&&L>1,t=Math.min(1,(L-1)/RAMP),e=Math.min(1,Math.max(0,L-RAMP)/300),s=hard?1.1:br?.8:1;
+  const mcs=MINCS-3*e;                  /* after RAMP, cells shrink slowly so boards keep growing */
+  const mc=Math.max(5,Math.floor(W*.95/mcs)),mr=Math.max(6,Math.floor(H*.95/mcs));
+  const cols=clamp(Math.round((4+(mc-4)*Math.pow(t,.7))*s),4,mc);
+  const rows=clamp(Math.round(cols*1.28),5,mr);
+  const q=Math.min(1,(L-1)/250);        /* density keeps rising until about level 250 */
+  return{cols,rows,fill:Math.min(.995,(.6+.395*q)*(hard?1.03:br?.9:1)),jit:.25+.3*q+(hard?.1:0),maxLen:Math.round(3+11*t+10*e)+(hard?3:0),minLen:2+Math.floor(2*e)};
+}
+/* ---------- LEVEL GENERATOR (solvable by construction) ----------
+   Arrows are placed one by one. A new arrow is only accepted if its ray to the edge
+   avoids every arrow placed before it. So removing arrows in reverse placement order
+   always works - no deadlock is possible. */
+function gen(L,salt){
+  const P=params(L),{cols,rows}=P,rnd=mul(L*7919+13+salt*101);
+  const mask=new Uint8Array(cols*rows),a1=.12+rnd()*.1,b1=.08+rnd()*.08,p1=rnd()*6.28,p2=rnd()*6.28;
+  const cells=[],cx0=cols/2,cy0=rows/2;
+  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+    const dx=(x+.5-cx0)/cx0,dy=(y+.5-cy0)/cy0,th=Math.atan2(dy,dx);
+    if(Math.hypot(dx,dy)<.98+a1*Math.sin(3*th+p1)+b1*Math.sin(5*th+p2)){mask[y*cols+x]=1;cells.push([x,y])}
+  }
+  const rad=Math.hypot(cols,rows)/2;
+  cells.forEach(c=>c.k=Math.hypot(c[0]+.5-cx0,c[1]+.5-cy0)+rnd()*rad*P.jit);
+  cells.sort((a,b)=>a.k-b.k);
+  const occ=new Int16Array(cols*rows).fill(-1),arrows=[],target=Math.floor(cells.length*P.fill);let used=0;
+  const free=(x,y)=>x>=0&&y>=0&&x<cols&&y<rows&&mask[y*cols+x]&&occ[y*cols+x]<0;
+  /* Each arrow depends on every arrow in its ray. A new arrow is accepted only if the dependency graph stays acyclic (no deadlock), which allows very dense boards. */
+  const cover=Array.from({length:cols*rows},()=>[]),deps=[];
+  const tryPlace=o=>{
+    const h=o[0][o[0].length-1],ray=[];let x=h[0]+o[1][0],y=h[1]+o[1][1];
+    while(x>=0&&y>=0&&x<cols&&y<rows){ray.push(y*cols+x);x+=o[1][0];y+=o[1][1]}
+    const mine=new Set(o[0].map(p=>p[1]*cols+p[0])),dp=new Set(),bb=new Set();
+    for(const c of ray){if(mine.has(c))return null;if(occ[c]>=0)dp.add(occ[c])}
+    for(const c of mine)for(const a of cover[c])bb.add(a);
+    const seen=new Set(),st=[...dp];
+    while(st.length){const a=st.pop();if(seen.has(a))continue;if(bb.has(a))return null;seen.add(a);for(const b of deps[a])st.push(b)}
+    return{ray,dp,bb};
+  };
+  for(let pass=0;pass<5&&used<target;pass++)for(const c of cells){
+    if(used>=target)break;if(occ[c[1]*cols+c[0]]>=0)continue;
+    for(let tr=0;tr<(pass?6:10);tr++){
+      const len=pass?1+Math.floor(rnd()*3):P.minLen+Math.floor(rnd()*(P.maxLen-P.minLen+1));
+      const path=[[c[0],c[1]]],inP=new Set([K(c[0],c[1])]);let pd=-1;
+      while(path.length<len){
+        const[x,y]=path[path.length-1],o=[];
+        D.forEach((d,i)=>{if(free(x+d[0],y+d[1])&&!inP.has(K(x+d[0],y+d[1])))o.push(i)});
+        if(!o.length)break;
+        const tn=o.filter(i=>i!==pd),i=(tn.length&&rnd()<.6)?tn[Math.floor(rnd()*tn.length)]:o[Math.floor(rnd()*o.length)];
+        const q=[x+D[i][0],y+D[i][1]];path.push(q);inP.add(K(q[0],q[1]));pd=i;
+      }
+      const n=path.length,opts=[];
+      if(n===1)D.forEach(d=>opts.push([path,d]));
+      else{opts.push([path,[path[n-1][0]-path[n-2][0],path[n-1][1]-path[n-2][1]]]);
+           opts.push([path.slice().reverse(),[path[0][0]-path[1][0],path[0][1]-path[1][1]]])}
+      if(rnd()<.5)opts.reverse();
+      let ok=null,r=null;for(const o of opts){r=tryPlace(o);if(r){ok=o;break}}
+      if(ok){
+        const id=arrows.length;arrows.push({id,path:ok[0],dir:ok[1]});ok[0].forEach(p=>occ[p[1]*cols+p[0]]=id);
+        deps[id]=r.dp;r.bb.forEach(a=>deps[a].add(id));r.ray.forEach(c=>cover[c].push(id));used+=n;break;
+      }
+    }
+  }
+  return{arrows,occ,mask,cols,rows};
+}
+function build(L){for(let s=0;s<12;s++){const g=gen(L,s);if(g.arrows.length>=3||s===11)return g}}
+/* ---------- STATE ---------- */
+const cv=$('cv'),cx=cv.getContext('2d');
+let G,alive,anim,lives,state,hintId=-1,hintUntil=0,lastTap=0,dots;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function theme(){const s=getComputedStyle(document.documentElement);ink=s.getPropertyValue('--ink').trim();soft=s.getPropertyValue('--soft').trim();go=s.getPropertyValue('--go').trim()}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',theme);
+function blocker(a){
+  const h=a.path[a.path.length-1];let x=h[0]+a.dir[0],y=h[1]+a.dir[1];
+  while(x>=0&&y>=0&&x<G.cols&&y<G.rows){const o=G.occ[y*G.cols+x];if(o>=0&&alive.has(o))return o;x+=a.dir[0];y+=a.dir[1]}
+  return -1;
+}
+/* ---------- GEOMETRY ---------- */
+function fit(){
+  const r=$('stage').getBoundingClientRect();dpr=window.devicePixelRatio||1;W=r.width;H=r.height;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';geom();
+}
+function geom(){
+  if(!G)return;
+  cs=Math.min(W*.95/G.cols,H*.95/G.rows);ox=(W-G.cols*cs)/2;oy=(H-G.rows*cs)/2;dots=[];
+  for(let y=0;y<G.rows;y++)for(let x=0;x<G.cols;x++)if(G.mask[y*G.cols+x])dots.push([ox+(x+.5)*cs,oy+(y+.5)*cs]);
+  for(const a of G.arrows){
+    const c=a.path.map(p=>[ox+(p[0]+.5)*cs,oy+(p[1]+.5)*cs]);
+    if(c.length===1)c.unshift([c[0][0]-a.dir[0]*cs*.3,c[0][1]-a.dir[1]*cs*.3]);
+    a.pts=c;a.bl=0;for(let i=0;i<c.length-1;i++)a.bl+=Math.hypot(c[i+1][0]-c[i][0],c[i+1][1]-c[i][1]);
+    a.travel=a.bl+(Math.max(G.cols,G.rows)+1)*cs;
+  }
+}
+function sub(pts,a,b){
+  const out=[];let acc=0;
+  for(let i=0;i<pts.length-1;i++){
+    const p=pts[i],q=pts[i+1],l=Math.hypot(q[0]-p[0],q[1]-p[1]);
+    if(l>0&&acc+l>=a&&acc<=b){
+      const t0=Math.max(0,(a-acc)/l),t1=Math.min(1,(b-acc)/l);
+      if(!out.length)out.push([p[0]+(q[0]-p[0])*t0,p[1]+(q[1]-p[1])*t0]);
+      out.push([p[0]+(q[0]-p[0])*t1,p[1]+(q[1]-p[1])*t1]);
+    }
+    acc+=l;
+  }
+  return out;
+}
+/* ---------- DRAW ---------- */
+function drawArrow(a,s,color,w,dx){
+  let seg=a.pts;
+  if(s>0){const h=a.pts[a.pts.length-1],e=a.travel+a.bl+cs;seg=sub(a.pts.concat([[h[0]+a.dir[0]*e,h[1]+a.dir[1]*e]]),s,s+a.bl);if(!seg.length)return}
+  cx.strokeStyle=color;cx.fillStyle=color;cx.lineWidth=w;
+  cx.beginPath();seg.forEach((p,i)=>i?cx.lineTo(p[0]+dx,p[1]):cx.moveTo(p[0]+dx,p[1]));cx.stroke();
+  const e=seg[seg.length-1],ex=e[0]+dx,ey=e[1],d=a.dir,px=-d[1],py=d[0];
+  cx.beginPath();cx.moveTo(ex+d[0]*cs*.5,ey+d[1]*cs*.5);
+  cx.lineTo(ex+d[0]*cs*.04+px*cs*.23,ey+d[1]*cs*.04+py*cs*.23);
+  cx.lineTo(ex+d[0]*cs*.04-px*cs*.23,ey+d[1]*cs*.04-py*cs*.23);cx.closePath();cx.fill();
+}
+function frame(now){
+  cx.setTransform(dpr,0,0,dpr,0,0);cx.clearRect(0,0,W,H);cx.lineCap='round';cx.lineJoin='round';
+  if(G){
+    const lw=Math.max(1.8,cs*.15);
+    cx.fillStyle=soft;cx.globalAlpha=.4;const r=Math.max(1,cs*.07);
+    for(const d of dots){cx.beginPath();cx.arc(d[0],d[1],r,0,6.283);cx.fill()}
+    cx.globalAlpha=1;
+    for(const a of G.arrows){
+      if(!alive.has(a.id))continue;
+      const age=now-a.shakeT,sh=age<320,dx=(!reduce&&sh)?Math.sin(age/22)*cs*.1*(1-age/320):0,hi=a.id===hintId&&now<hintUntil;
+      drawArrow(a,0,hi?go:(sh||now<a.flash)?'#e5484d':ink,hi?lw*1.7:lw,dx);
+    }
+    for(let i=anim.length-1;i>=0;i--){
+      const m=anim[i],t=Math.min(1,(now-m.t0)/m.dur);
+      drawArrow(m.a,m.a.travel*t*t+.01,ink,lw,0);if(t>=1)anim.splice(i,1);
+    }
+    if(state==='play'&&!alive.size&&!anim.length){state='won';setTimeout(win,300)}
+  }
+  requestAnimationFrame(frame);
+}
+/* ---------- INPUT ---------- */
+function dseg(px,py,p,q){const vx=q[0]-p[0],vy=q[1]-p[1],l=vx*vx+vy*vy,t=l?clamp(((px-p[0])*vx+(py-p[1])*vy)/l,0,1):0;return Math.hypot(px-(p[0]+vx*t),py-(p[1]+vy*t))}
+cv.addEventListener('pointerdown',e=>{
+  const now=performance.now();if(state!=='play'||now-lastTap<120)return;
+  const r=cv.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;let best=null,bd=cs*.7;
+  for(const a of G.arrows){
+    if(!alive.has(a.id))continue;
+    const h=a.pts[a.pts.length-1],pts=a.pts.concat([[h[0]+a.dir[0]*cs*.4,h[1]+a.dir[1]*cs*.4]]);
+    for(let i=0;i<pts.length-1;i++){const d=dseg(px,py,pts[i],pts[i+1]);if(d<bd){bd=d;best=a}}
+  }
+  if(!best)return;lastTap=now;
+  const b=blocker(best);
+  if(b<0){
+    alive.delete(best.id);anim.push({a:best,t0:now,dur:reduce?150:clamp(best.travel/(cs*.09),260,650)});
+    sOk();$('tip').textContent='';if(hintId===best.id)hintId=-1;
+  }else{
+    best.shakeT=now;G.arrows[b].flash=now+450;lives--;hearts();sBad();
+    if(lives<=0){state='lost';setTimeout(lose,550)}
+  }
+});
+/* ---------- UI ---------- */
+function hearts(){$('hearts').innerHTML='';for(let i=0;i<3;i++){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.innerHTML='<path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.3 3 4.5 6.6 4.5c2 0 3.6 1.1 5.4 3.2 1.8-2.1 3.4-3.2 5.4-3.2 3.6 0 5.700 3.800 4.200 7.300C19.500 16.400 12 21 12 21z"/>';if(i>=lives)s.classList.add('lost');$('hearts').appendChild(s)}}
+function hintUI(){$('hc').textContent=S.hints>0?S.hints:'+'}
+function showRewardedAd(cb){cb()}      /* hook: connect a real rewarded-ad SDK here */
+function onLevelComplete(n){}          /* hook: show an interstitial ad here if wanted */
+function overlay(t,p,b,fn,b2,fn2){
+  $('ot').textContent=t;$('op').textContent=p;$('ob').textContent=b;$('ob').onclick=()=>{$('ov').hidden=true;fn()};
+  $('ob2').hidden=!b2;if(b2){$('ob2').textContent=b2;$('ob2').onclick=()=>{$('ov').hidden=true;fn2()}}
+  $('ov').hidden=false;$('ob').focus();
+}
+function win(){
+  sWin();onLevelComplete(S.lvl);S.lvl++;if((S.lvl-1)%5===0)S.hints++;save();
+  overlay('Level '+(S.lvl-1)+' complete',S.lvl%10===0?'Next one is a hard level.':'Nice work.','Next level',load);
+}
+function lose(){
+  overlay('Out of lives','Plan the order and try again.','Retry',load,'Watch ad for 1 life',()=>showRewardedAd(()=>{state='play';lives=1;hearts()}));
+}
+$('hintBtn').onclick=()=>{
+  if(state!=='play')return;
+  if(S.hints<=0){showRewardedAd(()=>{S.hints=1;save();hintUI()});return}
+  const f=G.arrows.filter(a=>alive.has(a.id)&&blocker(a)<0);if(!f.length)return;
+  hintId=f[Math.floor(Math.random()*f.length)].id;hintUntil=performance.now()+2500;S.hints--;save();hintUI();
+};
+$('back').onclick=()=>{$('ov').hidden=true;load()};
+$('gear').onclick=()=>{$('set').hidden=false};
+$('cls').onclick=()=>{$('set').hidden=true};
+$('tS').onclick=e=>{S.snd=!S.snd;e.currentTarget.classList.toggle('on',S.snd);save();sOk()};
+$('tV').onclick=e=>{S.vib=!S.vib;e.currentTarget.classList.toggle('on',S.vib);save();if(S.vib&&navigator.vibrate)try{navigator.vibrate(35)}catch(_){}};
+let armed=0;
+$('rst').onclick=e=>{
+  if(!armed){armed=1;e.currentTarget.textContent='Tap again to confirm';setTimeout(()=>{armed=0;$('rst').textContent='Reset progress'},3000);return}
+  S.lvl=1;S.hints=3;save();armed=0;$('rst').textContent='Reset progress';$('set').hidden=true;load();
+};
+document.addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('resize',()=>{fit()});
+window.goToLevel=n=>{S.lvl=n;save();load()};
+/* ---------- LOAD ---------- */
+function load(){
+  $('ov').hidden=true;G=build(S.lvl);G.arrows.forEach(a=>{a.shakeT=-1e9;a.flash=0});
+  alive=new Set(G.arrows.map(a=>a.id));anim=[];lives=3;state='play';hintId=-1;
+  $('lvl').textContent=S.lvl%10===0?'LEVEL '+S.lvl+' (HARD)':'LEVEL '+S.lvl;
+  $('tip').textContent=S.lvl===1?'Tap an arrow whose path is clear.':'';
+  $('tS').classList.toggle('on',S.snd);$('tV').classList.toggle('on',S.vib);
+  hearts();hintUI();geom();
+}
+theme();fit();
+/* the board size depends on the screen, so measure first, then build */
+load();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
